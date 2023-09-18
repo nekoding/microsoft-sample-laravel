@@ -7,6 +7,8 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\TokenStore\TokenCache;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 use Microsoft\Graph\Graph;
 use Microsoft\Graph\Model;
 
@@ -19,8 +21,8 @@ class AuthController extends Controller
       'clientId'                => config('azure.appId'),
       'clientSecret'            => config('azure.appSecret'),
       'redirectUri'             => config('azure.redirectUri'),
-      'urlAuthorize'            => config('azure.authority').config('azure.authorizeEndpoint'),
-      'urlAccessToken'          => config('azure.authority').config('azure.tokenEndpoint'),
+      'urlAuthorize'            => config('azure.authority') . config('azure.authorizeEndpoint'),
+      'urlAccessToken'          => config('azure.authority') . config('azure.tokenEndpoint'),
       'urlResourceOwnerDetails' => '',
       'scopes'                  => config('azure.scopes')
     ]);
@@ -61,8 +63,8 @@ class AuthController extends Controller
         'clientId'                => config('azure.appId'),
         'clientSecret'            => config('azure.appSecret'),
         'redirectUri'             => config('azure.redirectUri'),
-        'urlAuthorize'            => config('azure.authority').config('azure.authorizeEndpoint'),
-        'urlAccessToken'          => config('azure.authority').config('azure.tokenEndpoint'),
+        'urlAuthorize'            => config('azure.authority') . config('azure.authorizeEndpoint'),
+        'urlAccessToken'          => config('azure.authority') . config('azure.tokenEndpoint'),
         'urlResourceOwnerDetails' => '',
         'scopes'                  => config('azure.scopes')
       ]);
@@ -80,12 +82,15 @@ class AuthController extends Controller
           ->setReturnType(Model\User::class)
           ->execute();
 
+        // $user = $graph->createRequest('GET', '/me?$select=displayName,mail,userPrincipalName')
+        //   ->setReturnType(Model\User::class)
+        //   ->execute();
+
         $tokenCache = new TokenCache();
         $tokenCache->storeTokens($accessToken, $user);
 
         return redirect('/');
-      }
-      catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
+      } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
         return redirect('/')
           ->with('error', 'Error requesting access token')
           ->with('errorDetail', json_encode($e->getResponseBody()));
@@ -102,5 +107,39 @@ class AuthController extends Controller
     $tokenCache = new TokenCache();
     $tokenCache->clearTokens();
     return redirect('/');
+  }
+
+  public function refreshToken()
+  {
+
+    $refreshToken = session()->get('refreshToken');
+
+    if (!$refreshToken) {
+      return redirect()->to('/signout');
+    }
+
+    $response = Http::asForm()->post("https://login.microsoftonline.com/common/oauth2/v2.0/token", [
+      'client_id'     => config('azure.appId'),
+      'scope'         => config('azure.scopes'),
+      'refresh_token' => $refreshToken,
+      'grant_type'    => 'refresh_token',
+      'client_secret' => config('azure.appSecret'),
+    ]);
+
+    // redirect to login page again if fail
+    if ($response->status() != 200) {
+      return redirect()->to('/signout');
+    }
+
+    $result = $response->json();
+
+    // update access token
+    session([
+      'accessToken' => $result['access_token'],
+      'refreshToken' => $result['refresh_token'],
+      'tokenExpires' => Carbon::createFromTimestamp(session()->get('tokenExpires'))->addSeconds($result['expires_in'])->timestamp
+    ]);
+
+    return redirect()->to('/calendar');
   }
 }

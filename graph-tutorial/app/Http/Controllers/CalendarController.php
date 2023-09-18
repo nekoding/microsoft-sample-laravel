@@ -26,7 +26,7 @@ class CalendarController extends Controller
     $startOfWeek = new \DateTimeImmutable('sunday -1 week', $timezone);
     $endOfWeek = new \DateTimeImmutable('sunday', $timezone);
 
-    $viewData['dateRange'] = $startOfWeek->format('M j, Y').' - '.$endOfWeek->format('M j, Y');
+    $viewData['dateRange'] = $startOfWeek->format('M j, Y') . ' - ' . $endOfWeek->format('M j, Y');
 
     $queryParams = array(
       'startDateTime' => $startOfWeek->format(\DateTimeInterface::ISO8601),
@@ -40,12 +40,12 @@ class CalendarController extends Controller
     );
 
     // Append query parameters to the '/me/calendarView' url
-    $getEventsUrl = '/me/calendarView?'.http_build_query($queryParams);
+    $getEventsUrl = '/me/calendarView?' . http_build_query($queryParams);
 
     $events = $graph->createRequest('GET', $getEventsUrl)
       // Add the user's timezone to the Prefer header
       ->addHeaders(array(
-        'Prefer' => 'outlook.timezone="'.$viewData['userTimeZone'].'"'
+        'Prefer' => 'outlook.timezone="' . $viewData['userTimeZone'] . '"'
       ))
       ->setReturnType(Model\Event::class)
       ->execute();
@@ -85,8 +85,7 @@ class CalendarController extends Controller
 
     // The Attendee object in Graph is complex, so build the structure
     $attendees = [];
-    foreach($attendeeAddresses as $attendeeAddress)
-    {
+    foreach ($attendeeAddresses as $attendeeAddress) {
       array_push($attendees, [
         // Add the email address in the emailAddress property
         'emailAddress' => [

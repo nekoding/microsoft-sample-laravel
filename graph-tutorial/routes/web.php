@@ -10,3 +10,4 @@ Route::get('/signout', 'AuthController@signout');
 Route::get('/calendar', 'CalendarController@calendar');
 Route::get('/calendar/new', 'CalendarController@getNewEventForm');
 Route::post('/calendar/new', 'CalendarController@createNewEvent');
+Route::get('/refresh-token', 'AuthController@refreshToken');

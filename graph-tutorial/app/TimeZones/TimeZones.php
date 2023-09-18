@@ -4,12 +4,14 @@
 
 namespace App\TimeZones;
 
-class TimeZones {
-  public static function getTzFromWindows($windowsTimeZone): \DateTimeZone {
+class TimeZones
+{
+  public static function getTzFromWindows($windowsTimeZone): \DateTimeZone
+  {
     $ianaTimeZone = self::$timeZoneMap[$windowsTimeZone];
 
-    if (null == $ianaTimeZone)
-    {
+
+    if (null == $ianaTimeZone) {
       // Try the value passed in - it is possible
       // the admins set this to IANA already
       $ianaTimeZone = $windowsTimeZone;
